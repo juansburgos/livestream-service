@@ -99,18 +99,18 @@ func (h *Handler) JoinRoom(c *gin.Context) {
 			RoomID:   roomID,
 			Username: username,
 		}
-		m := &Message{
-			Content:  fmt.Sprintf("User %s has joined the room", username),
-			Username: username,
-		}
+		//m := &Message{
+		//	Content:  fmt.Sprintf("User %s has joined the room", username),
+		//	Username: username,
+		//}
 		h.hub.Register <- cl
-		h.hub.Rooms[roomID].ChatBroadcast <- m
-
+		//h.hub.Rooms[roomID].ChatBroadcast <- m
 		go cl.writeStream()
+		go cl.readStream(h.hub)
 	}
-
-	go cl.writeMessage()
-	go cl.readMessage(h.hub)
+	//
+	//go cl.writeMessage()
+	//go cl.readMessage(h.hub)
 }
 
 type RoomResponse struct {

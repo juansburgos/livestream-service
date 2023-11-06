@@ -61,7 +61,7 @@ func (r *Room) Run() {
 			for _, cl := range r.Clients {
 				cl.Message <- m
 			}
-			r.Owner.Message <- m
+			//r.Owner.Message <- m
 		case b := <-r.StreamBroadcast:
 			for _, cl := range r.Clients {
 				cl.Stream <- b

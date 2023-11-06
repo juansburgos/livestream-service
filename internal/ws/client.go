@@ -3,6 +3,7 @@ package ws
 import (
 	"github.com/gorilla/websocket"
 	"log"
+	"os"
 )
 
 type Client struct {
@@ -34,6 +35,8 @@ func (c *Client) writeMessage() {
 			return
 		}
 		c.Conn.WriteJSON(message)
+		logger := log.New(os.Stdout, "", 0)
+		logger.Printf("WRITE MSG client:  %s, %s al roomid %s", c.ID, c.Username, c.RoomID)
 	}
 }
 
@@ -55,7 +58,8 @@ func (c *Client) readMessage(h *Hub) {
 			Content:  string(m),
 			Username: c.Username,
 		}
-
+		logger := log.New(os.Stdout, "", 0)
+		logger.Printf("READMSG client:  %s, %s al roomid %s", c.ID, c.Username, c.RoomID)
 		h.Rooms[c.RoomID].ChatBroadcast <- msg
 	}
 }
@@ -65,12 +69,16 @@ func (c *Client) writeStream() {
 		c.Conn.Close()
 	}()
 
+	logger := log.New(os.Stdout, "", 0)
 	for {
+		logger.Printf("for writeStream")
 		data, ok := <-c.Stream
 		if !ok {
+			logger.Printf("DATA del writeStream no ok")
 			return
 		}
 		c.Conn.WriteMessage(websocket.BinaryMessage, data.Content)
+		logger.Printf("USer %s escribio en el socket", c.Username)
 	}
 }
 
@@ -78,8 +86,9 @@ func (c *Client) readStream(h *Hub) {
 	defer func() {
 		c.Conn.Close()
 	}()
-
+	logger := log.New(os.Stdout, "", 0)
 	for {
+		logger.Printf("for readstream")
 		_, m, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -90,7 +99,7 @@ func (c *Client) readStream(h *Hub) {
 		vmsg := &VideoMessage{
 			Content: m,
 		}
-
+		logger.Printf("Brodcasteando stream")
 		h.Rooms[c.RoomID].StreamBroadcast <- vmsg
 	}
 }
