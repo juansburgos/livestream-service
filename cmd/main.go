@@ -12,5 +12,5 @@ func main() {
 	go hub.Run()
 
 	router.InitRouter(wsHandler)
-	router.Start("0.0.0.0:8080")
+	router.Start("127.0.0.1:8080")
 }

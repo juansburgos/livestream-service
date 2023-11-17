@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/http"
+	"strconv"
 )
 
 type Handler struct {
@@ -37,6 +38,8 @@ func (h *Handler) CreateRoom(c *gin.Context) {
 	//	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	//	return
 	//}
+	var newRoomID = strconv.Itoa(len(h.hub.Rooms))
+	req.ID = newRoomID
 
 	owner := &Client{
 		//Conn:     conn,
@@ -44,12 +47,12 @@ func (h *Handler) CreateRoom(c *gin.Context) {
 		Message:  make(chan *Message),
 		Stream:   make(chan *VideoMessage),
 		ID:       req.OwnerID,
-		RoomID:   req.ID,
+		RoomID:   newRoomID,
 		Username: req.OwnerName,
 	}
 
-	h.hub.Rooms[req.ID] = &Room{
-		ID:              req.ID,
+	h.hub.Rooms[newRoomID] = &Room{
+		ID:              newRoomID,
 		Name:            req.Name,
 		Owner:           owner,
 		Clients:         make(map[string]*Client),
@@ -57,7 +60,7 @@ func (h *Handler) CreateRoom(c *gin.Context) {
 		StreamBroadcast: make(chan *VideoMessage),
 	}
 
-	go h.hub.Rooms[req.ID].Run()
+	go h.hub.Rooms[newRoomID].Run()
 	//owner.readStream(h.hub)
 
 	c.JSON(http.StatusOK, req)
