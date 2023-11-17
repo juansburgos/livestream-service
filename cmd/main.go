@@ -1,8 +1,8 @@
 package main
 
 import (
-	"Snap-live/internal/router"
-	"Snap-live/internal/ws"
+	"livestream-service/internal/router"
+	"livestream-service/internal/ws"
 )
 
 func main() {

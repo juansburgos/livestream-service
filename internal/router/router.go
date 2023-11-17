@@ -1,9 +1,9 @@
 package router
 
 import (
-	"Snap-live/internal/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/itsjamie/gin-cors"
+	"livestream-service/internal/ws"
 	"net/http"
 )
 
