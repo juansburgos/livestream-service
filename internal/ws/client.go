@@ -99,7 +99,6 @@ func (c *Client) readStream(h *Hub) {
 		vmsg := &VideoMessage{
 			Content: m,
 		}
-		logger.Printf("Brodcasteando stream")
 		h.Rooms[c.RoomID].StreamBroadcast <- vmsg
 	}
 }

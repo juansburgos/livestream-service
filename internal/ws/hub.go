@@ -2,7 +2,6 @@ package ws
 
 import (
 	"fmt"
-	"log"
 )
 
 type Room struct {
@@ -33,10 +32,12 @@ func (h *Hub) Run() {
 		select {
 		case cl := <-h.Register:
 			if _, ok := h.Rooms[cl.RoomID]; ok {
-				log.Printf("Primer check")
 				r := h.Rooms[cl.RoomID]
 				if _, ok := r.Clients[cl.ID]; !ok {
 					r.Clients[cl.ID] = cl
+					r.StreamBroadcast <- &VideoMessage{
+						Content: make([]byte, 20),
+					}
 				}
 			}
 		case cl := <-h.Unregister:
