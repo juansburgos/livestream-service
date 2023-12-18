@@ -32,36 +32,25 @@ func (h *Handler) CreateRoom(c *gin.Context) {
 		return
 	}
 
-	//conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	//if err != nil {
-	//	fmt.Println("Failed")
-	//	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	//	return
-	//}
 	var newRoomID = strconv.Itoa(len(h.hub.Rooms))
 	req.ID = newRoomID
 
 	owner := &Client{
-		//Conn:     conn,
-		Conn: nil,
-		//Message:  make(chan *Message),
+		Conn:   nil,
 		Stream: make(chan *VideoMessage),
 		ID:     req.OwnerID,
 		RoomID: newRoomID,
-		//Username: req.OwnerName,
 	}
 
 	h.hub.Rooms[newRoomID] = &Room{
-		ID:      newRoomID,
-		Name:    req.Name,
-		Owner:   owner,
-		Clients: make(map[string]*Client),
-		//ChatBroadcast:   make(chan *Message),
+		ID:              newRoomID,
+		Name:            req.Name,
+		Owner:           owner,
+		Clients:         make(map[string]*Client),
 		StreamBroadcast: make(chan *VideoMessage),
 	}
 
 	go h.hub.Rooms[newRoomID].Run()
-	//owner.readStream(h.hub)
 
 	c.JSON(http.StatusOK, req)
 }
@@ -85,7 +74,6 @@ func (h *Handler) JoinRoom(c *gin.Context) {
 	}
 	roomID := c.Param("roomId")
 	clientID := c.Query("Id")
-	//username := c.Query("username")
 
 	var cl *Client
 
@@ -95,25 +83,15 @@ func (h *Handler) JoinRoom(c *gin.Context) {
 		go h.hub.Rooms[roomID].Owner.readStream(h.hub)
 	} else {
 		cl = &Client{
-			Conn: conn,
-			//Message:  make(chan *Message),
+			Conn:   conn,
 			Stream: make(chan *VideoMessage),
 			ID:     clientID,
 			RoomID: roomID,
-			//Username: username,
 		}
-		//m := &Message{
-		//	Content:  fmt.Sprintf("User %s has joined the room", username),
-		//	Username: username,
-		//}
 		h.hub.Register <- cl
-		//h.hub.Rooms[roomID].ChatBroadcast <- m
 		go cl.writeStream()
 		go cl.readStream(h.hub)
 	}
-	//
-	//go cl.writeMessage()
-	//go cl.readMessage(h.hub)
 }
 
 type RoomResponse struct {
@@ -129,7 +107,6 @@ func (h *Handler) GetRooms(c *gin.Context) {
 		rooms = append(rooms, RoomResponse{
 			ID:   r.ID,
 			Name: r.Name,
-			//OwnerName: r.Owner.Username,
 		})
 	}
 	c.JSON(http.StatusOK, rooms)
@@ -152,7 +129,6 @@ func (h *Handler) GetClients(c *gin.Context) {
 	for _, c := range h.hub.Rooms[roomId].Clients {
 		clients = append(clients, ClientResponse{
 			ID: c.ID,
-			//Username: c.Username,
 		})
 	}
 	c.JSON(http.StatusOK, clients)

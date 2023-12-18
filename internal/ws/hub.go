@@ -3,11 +3,10 @@ package ws
 import "livestream-service/internal/logger"
 
 type Room struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Owner   *Client
-	Clients map[string]*Client
-	//ChatBroadcast   chan *Message
+	ID              string `json:"id"`
+	Name            string `json:"name"`
+	Owner           *Client
+	Clients         map[string]*Client
 	StreamBroadcast chan *VideoMessage
 }
 
@@ -43,13 +42,8 @@ func (h *Hub) Run() {
 		case cl := <-h.Unregister:
 			if _, ok := h.Rooms[cl.RoomID]; ok {
 				if _, ok := h.Rooms[cl.RoomID].Clients[cl.ID]; ok {
-					logger.Get().Print("Client %s has deregistered", cl.ID)
-					//h.Rooms[cl.RoomID].ChatBroadcast <- &Message{
-					//	Content:  fmt.Sprintf("user %s has left the chat", cl.Username),
-					//	Username: cl.Username,
-					//}
+					logger.Get().Printf("Client %s has deregistered", cl.ID)
 					delete(h.Rooms[cl.RoomID].Clients, cl.ID)
-					//close(cl.Message)
 				}
 			}
 		}
@@ -59,13 +53,7 @@ func (h *Hub) Run() {
 func (r *Room) Run() {
 	for {
 		select {
-		//case m := <-r.ChatBroadcast:
-		//	for _, cl := range r.Clients {
-		//		cl.Message <- m
-		//	}
-		//	//r.Owner.Message <- m
 		case b := <-r.StreamBroadcast:
-
 			// send video chunk to each client in hub
 			for _, cl := range r.Clients {
 				cl.Stream <- b
