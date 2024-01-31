@@ -19,10 +19,8 @@ func NewHandler(h *Hub) *Handler {
 }
 
 type CreateRoomReq struct {
-	ID        string `json:"id"`
 	Name      string `json:"name"`
 	OwnerName string `json:"ownerName"`
-	OwnerID   string `json:"ownerId"`
 }
 
 func (h *Handler) CreateRoom(c *gin.Context) {
@@ -32,15 +30,25 @@ func (h *Handler) CreateRoom(c *gin.Context) {
 		return
 	}
 
-	var newRoomID = strconv.Itoa(len(h.hub.Rooms))
-	req.ID = newRoomID
-
-	owner := &Client{
-		Conn:   nil,
-		Stream: make(chan *VideoMessage),
-		ID:     req.OwnerID,
-		RoomID: newRoomID,
+	// Verificar si el cliente ya existe
+	var owner *Client
+	existingOwner := h.getClientByName(req.OwnerName)
+	if existingOwner != nil {
+		owner = existingOwner
+	} else {
+		// Crear un nuevo cliente
+		var ownerID = strconv.Itoa(len(h.hub.Rooms))
+		owner = &Client{
+			ID:     ownerID, // Generar un nuevo ID para el propietario
+			Name:   req.OwnerName,
+			Conn:   nil,
+			Stream: make(chan *VideoMessage),
+		}
+		// Agregar el nuevo cliente a la lista
+		h.hub.Clients[owner.ID] = owner
 	}
+
+	var newRoomID = strconv.Itoa(len(h.hub.Rooms))
 
 	h.hub.Rooms[newRoomID] = &Room{
 		ID:              newRoomID,
@@ -52,7 +60,21 @@ func (h *Handler) CreateRoom(c *gin.Context) {
 
 	go h.hub.Rooms[newRoomID].Run()
 
-	c.JSON(http.StatusOK, req)
+	c.JSON(http.StatusOK, gin.H{
+		"roomId":    newRoomID,
+		"name":      req.Name,
+		"ownerId":   owner.ID,
+		"ownerName": req.OwnerName,
+	})
+}
+
+func (h *Handler) getClientByName(name string) *Client {
+	for _, client := range h.hub.Clients {
+		if client.Name == name {
+			return client
+		}
+	}
+	return nil
 }
 
 var upgrader = websocket.Upgrader{
