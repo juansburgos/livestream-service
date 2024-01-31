@@ -1,7 +1,6 @@
 package ws
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/http"
@@ -37,7 +36,7 @@ func (h *Handler) CreateRoom(c *gin.Context) {
 		owner = existingOwner
 	} else {
 		// Crear un nuevo cliente
-		var ownerID = strconv.Itoa(len(h.hub.Rooms))
+		var ownerID = strconv.Itoa(len(h.hub.Clients))
 		owner = &Client{
 			ID:     ownerID, // Generar un nuevo ID para el propietario
 			Name:   req.OwnerName,
@@ -57,6 +56,8 @@ func (h *Handler) CreateRoom(c *gin.Context) {
 		Clients:         make(map[string]*Client),
 		StreamBroadcast: make(chan *VideoMessage),
 	}
+
+	h.hub.Rooms[newRoomID].Clients[owner.ID] = owner
 
 	go h.hub.Rooms[newRoomID].Run()
 
@@ -88,38 +89,57 @@ var upgrader = websocket.Upgrader{
 }
 
 func (h *Handler) JoinRoom(c *gin.Context) {
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		fmt.Println("Failed")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	roomID := c.Param("roomId")
+	clientName := c.Query("userName")
+
+	// Verificar si la sala existe
+	room, ok := h.hub.Rooms[roomID]
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Room not found"})
 		return
 	}
-	roomID := c.Param("roomId")
-	clientID := c.Query("Id")
 
-	var cl *Client
-
-	if clientID == h.hub.Rooms[roomID].Owner.ID {
-		cl = h.hub.Rooms[roomID].Owner
-		cl.Conn = conn
-		go h.hub.Rooms[roomID].Owner.readStream(h.hub)
-	} else {
-		cl = &Client{
-			Conn:   conn,
-			Stream: make(chan *VideoMessage),
-			ID:     clientID,
-			RoomID: roomID,
-		}
-		h.hub.Register <- cl
-		go cl.writeStream()
-		go cl.readStream(h.hub)
+	// Verificar si el cliente ya está conectado a esa sala
+	if _, exists := room.Clients[clientName]; exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Client already connected to this room"})
+		return
 	}
+
+	// Crear un nuevo cliente y agregarlo a la sala
+	client := &Client{
+		ID:     strconv.Itoa(len(h.hub.Clients)), // Generar un nuevo ID para el cliente
+		Name:   clientName,
+		Conn:   nil,
+		Stream: make(chan *VideoMessage),
+		RoomID: roomID,
+	}
+	room.Clients[clientName] = client
+
+	response := gin.H{
+		"roomId":    roomID,
+		"roomName":  room.Name,
+		"ownerId":   room.Owner.ID,
+		"ownerName": room.Owner.Name,
+		"clients":   getConnectedClients(room),
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func getConnectedClients(room *Room) []string {
+	var clients []string
+	for _, client := range room.Clients {
+		clients = append(clients, client.Name)
+	}
+	return clients
 }
 
 type RoomResponse struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	OwnerName string `json:"ownerName"`
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	OwnerName string   `json:"ownerName"`
+	Clients   []string `json:"clients"`
 }
 
 func (h *Handler) GetRooms(c *gin.Context) {
@@ -127,8 +147,10 @@ func (h *Handler) GetRooms(c *gin.Context) {
 
 	for _, r := range h.hub.Rooms {
 		rooms = append(rooms, RoomResponse{
-			ID:   r.ID,
-			Name: r.Name,
+			ID:        r.ID,
+			Name:      r.Name,
+			OwnerName: r.Owner.Name,
+			Clients:   getConnectedClients(r),
 		})
 	}
 	c.JSON(http.StatusOK, rooms)

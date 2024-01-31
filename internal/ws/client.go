@@ -10,6 +10,7 @@ type Client struct {
 	Stream chan *VideoMessage
 	ID     string `json:"Id"`
 	RoomID string `json:"roomId"`
+	Name   string `json:"name"`
 }
 
 type Message struct {
