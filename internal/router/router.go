@@ -1,8 +1,8 @@
 package router
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/itsjamie/gin-cors"
 	"livestream-service/internal/ws"
 	"net/http"
 )
@@ -12,10 +12,11 @@ var r *gin.Engine
 func InitRouter(wsHandler *ws.Handler) {
 	r = gin.Default()
 
-	r.Use(cors.Middleware(cors.Config{
-		Origins:        "*",
-		Methods:        "GET, POST",
-		RequestHeaders: "*",
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "PUT", "POST", "DELETE"},
+		AllowCredentials: true,
+		ExposeHeaders:    []string{"*"},
 	}))
 
 	//De esto se deberia ocupar el front
