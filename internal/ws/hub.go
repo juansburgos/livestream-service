@@ -2,6 +2,13 @@ package ws
 
 import "livestream-service/internal/logger"
 
+type DirectMessage struct {
+	RoomID   string `json:"id"`
+	Sender   string `json:"sender"`
+	Receiver string `json:"receiver"`
+	Message  string `json:"message"`
+}
+
 type Room struct {
 	ID              string `json:"id"`
 	Name            string `json:"name"`

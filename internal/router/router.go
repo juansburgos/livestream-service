@@ -29,6 +29,7 @@ func InitRouter(wsHandler *ws.Handler) {
 
 	r.POST("/rooms", wsHandler.CreateRoom)
 	r.GET("/rooms/:roomId", wsHandler.JoinRoom)
+	r.POST("/direct-message", wsHandler.DirectMessage)
 }
 
 func Start(addr string) error {

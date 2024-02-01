@@ -3,6 +3,7 @@ package ws
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"livestream-service/internal/logger"
 	"net/http"
 	"strconv"
 )
@@ -108,7 +109,7 @@ func (h *Handler) JoinRoom(c *gin.Context) {
 
 	// Crear un nuevo cliente y agregarlo a la sala
 	client := &Client{
-		ID:     strconv.Itoa(len(h.hub.Clients)), // Generar un nuevo ID para el cliente
+		ID:     strconv.Itoa(len(h.hub.Clients)),
 		Name:   clientName,
 		Conn:   nil,
 		Stream: make(chan *VideoMessage),
@@ -128,6 +129,7 @@ func (h *Handler) JoinRoom(c *gin.Context) {
 }
 
 func getConnectedClients(room *Room) []string {
+	// Devuelvo los cientes conectados a la sala
 	var clients []string
 	for _, client := range room.Clients {
 		clients = append(clients, client.Name)
@@ -176,4 +178,50 @@ func (h *Handler) GetClients(c *gin.Context) {
 		})
 	}
 	c.JSON(http.StatusOK, clients)
+}
+
+func (h *Handler) DirectMessage(c *gin.Context) {
+	var dm DirectMessage
+	if err := c.ShouldBindJSON(&dm); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	roomID := dm.RoomID
+	// Verificar si la sala existe
+	_, ok := h.hub.Rooms[roomID]
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Room not found"})
+		return
+	}
+	// Busco si el sender client esta en la sala
+	senderClient := h.findClientInRoom(roomID, dm.Sender)
+	if senderClient == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Sender not found in the same room"})
+		return
+	}
+	// Busco si el receiver esta en la sala
+	receiverClient := h.findClientInRoom(roomID, dm.Receiver)
+	if receiverClient == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Receiver not found in the same room"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Direct message sent successfully"})
+	logger.Get().Printf("New direct message in Room: %s from Sender: %s, Receiver: %s, Message: %s",
+		dm.RoomID, dm.Sender, dm.Receiver, dm.Message)
+}
+
+func (h *Handler) findClientInRoom(roomID string, username string) *Client {
+	room, ok := h.hub.Rooms[roomID]
+	if !ok {
+		return nil
+	}
+
+	for _, client := range room.Clients {
+		if client.Name == username {
+			return client
+		}
+	}
+	return nil
 }
