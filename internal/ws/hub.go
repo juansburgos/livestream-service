@@ -1,6 +1,15 @@
 package ws
 
-import "livestream-service/internal/logger"
+import (
+	"livestream-service/internal/logger"
+	"time"
+)
+
+type ChatMessage struct {
+	Sender    string    `json:"sender"`
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
+}
 
 type DirectMessage struct {
 	RoomID   string `json:"id"`
@@ -15,6 +24,7 @@ type Room struct {
 	Owner           *Client
 	Clients         map[string]*Client
 	StreamBroadcast chan *VideoMessage
+	ChatMessages    []ChatMessage
 }
 
 type Hub struct {

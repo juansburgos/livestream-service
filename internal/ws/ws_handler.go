@@ -1,11 +1,13 @@
 package ws
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"livestream-service/internal/logger"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type Handler struct {
@@ -188,28 +190,39 @@ func (h *Handler) DirectMessage(c *gin.Context) {
 	}
 
 	roomID := dm.RoomID
-	// Verificar si la sala existe
-	_, ok := h.hub.Rooms[roomID]
+
+	room, ok := h.hub.Rooms[roomID]
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Room not found"})
 		return
 	}
-	// Busco si el sender client esta en la sala
+
 	senderClient := h.findClientInRoom(roomID, dm.Sender)
 	if senderClient == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Sender not found in the same room"})
 		return
 	}
-	// Busco si el receiver esta en la sala
+
 	receiverClient := h.findClientInRoom(roomID, dm.Receiver)
 	if receiverClient == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Receiver not found in the same room"})
 		return
 	}
 
+	room.ChatMessages = append(room.ChatMessages, ChatMessage{
+		Sender:    dm.Sender,
+		Message:   dm.Message,
+		Timestamp: time.Now(),
+	})
+
+	// Log chat
+	chatLog := "Chat Log:\n"
+	for _, msg := range room.ChatMessages {
+		chatLog += fmt.Sprintf("[%s] %s: %s\n", msg.Timestamp.Format("2006-01-02 15:04:05"), msg.Sender, msg.Message)
+	}
+	logger.Get().Printf(chatLog)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Direct message sent successfully"})
-	logger.Get().Printf("New direct message in Room: %s from Sender: %s, Receiver: %s, Message: %s",
-		dm.RoomID, dm.Sender, dm.Receiver, dm.Message)
 }
 
 func (h *Handler) findClientInRoom(roomID string, username string) *Client {
