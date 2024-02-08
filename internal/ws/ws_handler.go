@@ -111,7 +111,7 @@ func (h *Handler) JoinRoom(c *gin.Context) {
 
 	// Crear un nuevo cliente y agregarlo a la sala
 	client := &Client{
-		ID:     strconv.Itoa(len(h.hub.Clients)),
+		ID:     strconv.Itoa(len(room.Clients)),
 		Name:   clientName,
 		Conn:   nil,
 		Stream: make(chan *VideoMessage),
@@ -161,8 +161,8 @@ func (h *Handler) GetRooms(c *gin.Context) {
 }
 
 type ClientResponse struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 func (h *Handler) GetClients(c *gin.Context) {
@@ -176,7 +176,8 @@ func (h *Handler) GetClients(c *gin.Context) {
 
 	for _, c := range h.hub.Rooms[roomId].Clients {
 		clients = append(clients, ClientResponse{
-			ID: c.ID,
+			ID:   c.ID,
+			Name: c.Name,
 		})
 	}
 	c.JSON(http.StatusOK, clients)
