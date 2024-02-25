@@ -1,6 +1,22 @@
 package ws
 
-import "livestream-service/internal/logger"
+import (
+	"livestream-service/internal/logger"
+	"time"
+)
+
+type ChatMessage struct {
+	Sender    string    `json:"sender"`
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type DirectMessage struct {
+	RoomID   string `json:"id"`
+	Sender   string `json:"sender"`
+	Receiver string `json:"receiver"`
+	Message  string `json:"message"`
+}
 
 type Room struct {
 	ID              string `json:"id"`
@@ -8,10 +24,12 @@ type Room struct {
 	Owner           *Client
 	Clients         map[string]*Client
 	StreamBroadcast chan *VideoMessage
+	ChatMessages    []ChatMessage
 }
 
 type Hub struct {
 	Rooms      map[string]*Room
+	Clients    map[string]*Client
 	Register   chan *Client
 	Unregister chan *Client
 }
@@ -19,6 +37,7 @@ type Hub struct {
 func NewHub() *Hub {
 	return &Hub{
 		Rooms:      make(map[string]*Room),
+		Clients:    make(map[string]*Client),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 	}
